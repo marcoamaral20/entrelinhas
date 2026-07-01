@@ -40,6 +40,8 @@ describe("message ingestion routes", () => {
   });
 
   beforeEach(async () => {
+    await database.pool.query("delete from property_listings");
+    await database.pool.query("delete from parser_results");
     await database.pool.query("delete from raw_messages");
   });
 

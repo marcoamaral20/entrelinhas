@@ -2,11 +2,11 @@
 
 Garimzap is a backend platform for transforming high-volume group chat messages into structured business information.
 
-The MVP focuses on real estate listings and follows a provider-agnostic, asynchronous processing architecture. The current implementation is **Milestone 3: Asynchronous Processing**.
+The MVP focuses on real estate listings and follows a provider-agnostic, asynchronous processing architecture. The current implementation is **Milestone 4: Real Estate Parser and Property Listing Creation**.
 
 ## Current Milestone
 
-Milestone 3 provides:
+Milestone 4 provides:
 
 - Runnable TypeScript backend service.
 - `GET /health` endpoint.
@@ -20,9 +20,14 @@ Milestone 3 provides:
 - BullMQ and Redis-backed asynchronous processing.
 - Separate API and worker processes.
 - Raw message lifecycle transitions from `accepted` to `processing` to `processed` or `failed`.
+- Deterministic real estate message parsing.
+- Parser Result creation for every processed message.
+- Parser Result statuses: `listing_created`, `unstructured`, and `rejected`.
+- Property Listing creation when strict listing requirements are met.
+- Traceability from Property Listing to Parser Result and Raw Message.
 - Quality gates for tests, typechecking, linting, and formatting.
 
-Milestone 3 does not include parser behavior, parser results, property listings, statistics, authentication, provider integrations, or a frontend dashboard.
+Milestone 4 does not include property listing query APIs, statistics, authentication, provider integrations, AI extraction, multi-domain parsing, or a frontend dashboard.
 
 ## Requirements
 
@@ -74,7 +79,7 @@ In another terminal, start the worker:
 npm run dev:worker
 ```
 
-The worker intentionally performs no-op processing in this milestone. Its role is to prove that accepted messages move through the asynchronous pipeline.
+The worker runs the deterministic real estate parser in this milestone. Parser outcomes are stored separately from the raw message technical lifecycle.
 
 Check service health:
 
@@ -135,7 +140,7 @@ Successful ingestion returns `201 Created`:
 
 Submitting the same `externalMessageId` and `groupId` again also returns `201 Created`, but with `created: false` and the existing message.
 
-With the worker running, the message should move through this lifecycle:
+With the worker running, the raw message should move through this technical lifecycle:
 
 ```text
 accepted -> processing -> processed
@@ -147,7 +152,15 @@ If a technical processing error occurs after retries, the public lifecycle is:
 accepted -> processing -> failed
 ```
 
-Parser-specific outcomes such as `listing_created`, `unstructured`, and `rejected` are intentionally not implemented yet.
+Parser-specific outcomes are stored as Parser Results:
+
+```text
+complete real estate listing -> listing_created + Property Listing
+incomplete real estate message -> unstructured
+non-real-estate message -> rejected
+```
+
+Property Listing query APIs are intentionally deferred to Milestone 5.
 
 List raw messages:
 

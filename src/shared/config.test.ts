@@ -12,6 +12,7 @@ describe("loadConfig", () => {
       logLevel: "info",
       nodeEnv: "development",
       port: 3000,
+      redisUrl: "redis://localhost:6379",
     });
   });
 
@@ -22,6 +23,7 @@ describe("loadConfig", () => {
       LOG_LEVEL: "debug",
       NODE_ENV: "test",
       PORT: "4000",
+      REDIS_URL: "redis://example.com:6380",
     });
 
     expect(config).toEqual({
@@ -30,6 +32,7 @@ describe("loadConfig", () => {
       logLevel: "debug",
       nodeEnv: "test",
       port: 4000,
+      redisUrl: "redis://example.com:6380",
     });
   });
 

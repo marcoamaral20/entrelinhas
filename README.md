@@ -2,11 +2,11 @@
 
 Garimzap is a backend platform for transforming high-volume group chat messages into structured business information.
 
-The MVP focuses on real estate listings and follows a provider-agnostic, asynchronous processing architecture. The current implementation is **Milestone 2: Message Ingestion**.
+The MVP focuses on real estate listings and follows a provider-agnostic, asynchronous processing architecture. The current implementation is **Milestone 3: Asynchronous Processing**.
 
 ## Current Milestone
 
-Milestone 2 provides:
+Milestone 3 provides:
 
 - Runnable TypeScript backend service.
 - `GET /health` endpoint.
@@ -17,9 +17,12 @@ Milestone 2 provides:
 - Provider-agnostic `POST /webhooks/messages` ingestion.
 - Raw message query APIs through `GET /messages` and `GET /messages/:id`.
 - Idempotent duplicate handling by `externalMessageId` and `groupId`.
+- BullMQ and Redis-backed asynchronous processing.
+- Separate API and worker processes.
+- Raw message lifecycle transitions from `accepted` to `processing` to `processed` or `failed`.
 - Quality gates for tests, typechecking, linting, and formatting.
 
-Milestone 2 does not include queue processing, workers, parser behavior, parser results, property listings, statistics, authentication, provider integrations, or a frontend dashboard.
+Milestone 3 does not include parser behavior, parser results, property listings, statistics, authentication, provider integrations, or a frontend dashboard.
 
 ## Requirements
 
@@ -64,6 +67,14 @@ Start the backend in development mode:
 ```bash
 npm run dev
 ```
+
+In another terminal, start the worker:
+
+```bash
+npm run dev:worker
+```
+
+The worker intentionally performs no-op processing in this milestone. Its role is to prove that accepted messages move through the asynchronous pipeline.
 
 Check service health:
 
@@ -113,12 +124,30 @@ Successful ingestion returns `201 Created`:
     "text": "VENDO CASA\n3 quartos\nJardim Europa\nLondrina - PR\nR$ 320.000",
     "sentAt": "2026-07-01T10:00:00.000Z",
     "receivedAt": "generated-received-timestamp",
+    "processingStartedAt": null,
+    "processedAt": null,
+    "processingFailedAt": null,
+    "lastProcessingError": null,
     "processingStatus": "accepted"
   }
 }
 ```
 
 Submitting the same `externalMessageId` and `groupId` again also returns `201 Created`, but with `created: false` and the existing message.
+
+With the worker running, the message should move through this lifecycle:
+
+```text
+accepted -> processing -> processed
+```
+
+If a technical processing error occurs after retries, the public lifecycle is:
+
+```text
+accepted -> processing -> failed
+```
+
+Parser-specific outcomes such as `listing_created`, `unstructured`, and `rejected` are intentionally not implemented yet.
 
 List raw messages:
 

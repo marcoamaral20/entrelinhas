@@ -11,6 +11,7 @@ describe("GET /health", () => {
         logLevel: "silent",
         nodeEnv: "test",
         port: 0,
+        redisUrl: "redis://localhost:6379",
       },
     });
 

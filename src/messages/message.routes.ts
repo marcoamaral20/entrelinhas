@@ -1,10 +1,12 @@
 import type { FastifyInstance } from "fastify";
 
+import type { ProcessingQueue } from "../processing/processing.types";
 import type { MessageRepository } from "./message.types";
 import { incomingMessageSchema } from "./message.validation";
 
 type MessageRouteDependencies = {
   messageRepository: MessageRepository;
+  processingQueue?: ProcessingQueue;
 };
 
 export async function registerMessageRoutes(
@@ -22,6 +24,10 @@ export async function registerMessageRoutes(
     }
 
     const result = await dependencies.messageRepository.createAccepted(payload.data);
+
+    if (result.created) {
+      await dependencies.processingQueue?.enqueueRawMessage(result.message.id);
+    }
 
     return reply.status(201).send(result);
   });

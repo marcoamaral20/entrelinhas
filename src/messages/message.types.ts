@@ -10,7 +10,11 @@ export type IncomingMessagePayload = {
 
 export type RawMessage = IncomingMessagePayload & {
   id: string;
-  processingStatus: "accepted";
+  lastProcessingError: string | null;
+  processedAt: string | null;
+  processingFailedAt: string | null;
+  processingStartedAt: string | null;
+  processingStatus: "accepted" | "processing" | "processed" | "failed";
   receivedAt: string;
 };
 
@@ -23,4 +27,7 @@ export type MessageRepository = {
   createAccepted(payload: IncomingMessagePayload): Promise<CreateRawMessageResult>;
   findById(id: string): Promise<RawMessage | null>;
   list(): Promise<RawMessage[]>;
+  markFailed(id: string, errorMessage: string): Promise<void>;
+  markProcessed(id: string): Promise<void>;
+  markProcessing(id: string): Promise<void>;
 };

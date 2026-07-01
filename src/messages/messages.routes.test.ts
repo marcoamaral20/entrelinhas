@@ -30,6 +30,7 @@ describe("message ingestion routes", () => {
       logLevel: "silent",
       nodeEnv: "test",
       port: 0,
+      redisUrl: "redis://localhost:6379",
     },
     messageRepository,
   });

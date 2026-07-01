@@ -2,12 +2,14 @@ import Fastify from "fastify";
 
 import type { MessageRepository } from "./messages/message.types";
 import { registerMessageRoutes } from "./messages/message.routes";
+import type { ProcessingQueue } from "./processing/processing.types";
 import type { AppConfig } from "./shared/config";
 import { loadConfig } from "./shared/config";
 
 type BuildAppOptions = {
   config?: AppConfig;
   messageRepository?: MessageRepository;
+  processingQueue?: ProcessingQueue;
 };
 
 export function buildApp(options: BuildAppOptions = {}) {
@@ -24,6 +26,13 @@ export function buildApp(options: BuildAppOptions = {}) {
   if (options.messageRepository) {
     void registerMessageRoutes(app, {
       messageRepository: options.messageRepository,
+      processingQueue: options.processingQueue,
+    });
+  }
+
+  if (options.processingQueue?.close) {
+    app.addHook("onClose", async () => {
+      await options.processingQueue?.close?.();
     });
   }
 

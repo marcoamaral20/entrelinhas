@@ -12,7 +12,11 @@ function toRawMessage(row: typeof rawMessages.$inferSelect): RawMessage {
     groupId: row.groupId,
     groupName: row.groupName,
     id: row.id,
-    processingStatus: "accepted",
+    lastProcessingError: row.lastProcessingError,
+    processedAt: row.processedAt?.toISOString() ?? null,
+    processingFailedAt: row.processingFailedAt?.toISOString() ?? null,
+    processingStartedAt: row.processingStartedAt?.toISOString() ?? null,
+    processingStatus: row.processingStatus as RawMessage["processingStatus"],
     receivedAt: row.receivedAt.toISOString(),
     senderId: row.senderId,
     senderName: row.senderName,
@@ -29,6 +33,10 @@ export function createPostgresMessageRepository(db: Database) {
         .values({
           ...payload,
           id: randomUUID(),
+          lastProcessingError: null,
+          processedAt: null,
+          processingFailedAt: null,
+          processingStartedAt: null,
           processingStatus: "accepted",
           receivedAt: new Date(),
           sentAt: new Date(payload.sentAt),
@@ -76,6 +84,41 @@ export function createPostgresMessageRepository(db: Database) {
       });
 
       return messages.map(toRawMessage);
+    },
+
+    async markProcessing(id: string): Promise<void> {
+      await db
+        .update(rawMessages)
+        .set({
+          lastProcessingError: null,
+          processedAt: null,
+          processingFailedAt: null,
+          processingStartedAt: new Date(),
+          processingStatus: "processing",
+        })
+        .where(eq(rawMessages.id, id));
+    },
+
+    async markProcessed(id: string): Promise<void> {
+      await db
+        .update(rawMessages)
+        .set({
+          lastProcessingError: null,
+          processedAt: new Date(),
+          processingStatus: "processed",
+        })
+        .where(eq(rawMessages.id, id));
+    },
+
+    async markFailed(id: string, errorMessage: string): Promise<void> {
+      await db
+        .update(rawMessages)
+        .set({
+          lastProcessingError: errorMessage,
+          processingFailedAt: new Date(),
+          processingStatus: "failed",
+        })
+        .where(eq(rawMessages.id, id));
     },
   };
 }

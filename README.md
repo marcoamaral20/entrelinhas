@@ -2,20 +2,24 @@
 
 Garimzap is a backend platform for transforming high-volume group chat messages into structured business information.
 
-The MVP focuses on real estate listings and follows a provider-agnostic, asynchronous processing architecture. The current implementation is **Milestone 1: Project Foundation**.
+The MVP focuses on real estate listings and follows a provider-agnostic, asynchronous processing architecture. The current implementation is **Milestone 2: Message Ingestion**.
 
 ## Current Milestone
 
-Milestone 1 provides:
+Milestone 2 provides:
 
 - Runnable TypeScript backend service.
 - `GET /health` endpoint.
 - Environment-based configuration.
 - Basic structured HTTP logging.
 - Docker Compose services for local PostgreSQL and Redis.
+- PostgreSQL-backed raw message persistence.
+- Provider-agnostic `POST /webhooks/messages` ingestion.
+- Raw message query APIs through `GET /messages` and `GET /messages/:id`.
+- Idempotent duplicate handling by `externalMessageId` and `groupId`.
 - Quality gates for tests, typechecking, linting, and formatting.
 
-Milestone 1 does not include message ingestion, persistence usage, queue processing, parser behavior, property listings, authentication, provider integrations, or a frontend dashboard.
+Milestone 2 does not include queue processing, workers, parser behavior, parser results, property listings, statistics, authentication, provider integrations, or a frontend dashboard.
 
 ## Requirements
 
@@ -49,6 +53,12 @@ If your Docker installation uses the legacy Compose command:
 docker-compose up -d
 ```
 
+Run database migrations:
+
+```bash
+npm run db:migrate
+```
+
 Start the backend in development mode:
 
 ```bash
@@ -68,6 +78,58 @@ Expected response:
   "environment": "development",
   "status": "ok"
 }
+```
+
+## Message Ingestion API
+
+Submit a normalized incoming message:
+
+```bash
+curl -X POST http://localhost:3000/webhooks/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "externalMessageId": "msg_123",
+    "groupId": "group_456",
+    "groupName": "Imoveis Londrina",
+    "senderId": "user_789",
+    "senderName": "Maria",
+    "text": "VENDO CASA\n3 quartos\nJardim Europa\nLondrina - PR\nR$ 320.000",
+    "sentAt": "2026-07-01T10:00:00.000Z"
+  }'
+```
+
+Successful ingestion returns `201 Created`:
+
+```json
+{
+  "created": true,
+  "message": {
+    "id": "generated-message-id",
+    "externalMessageId": "msg_123",
+    "groupId": "group_456",
+    "groupName": "Imoveis Londrina",
+    "senderId": "user_789",
+    "senderName": "Maria",
+    "text": "VENDO CASA\n3 quartos\nJardim Europa\nLondrina - PR\nR$ 320.000",
+    "sentAt": "2026-07-01T10:00:00.000Z",
+    "receivedAt": "generated-received-timestamp",
+    "processingStatus": "accepted"
+  }
+}
+```
+
+Submitting the same `externalMessageId` and `groupId` again also returns `201 Created`, but with `created: false` and the existing message.
+
+List raw messages:
+
+```bash
+curl http://localhost:3000/messages
+```
+
+Retrieve one raw message:
+
+```bash
+curl http://localhost:3000/messages/generated-message-id
 ```
 
 ## Quality Gates

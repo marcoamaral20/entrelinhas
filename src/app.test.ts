@@ -5,10 +5,13 @@ import { buildApp } from "./app";
 describe("GET /health", () => {
   it("returns minimal service health with the current environment", async () => {
     const app = buildApp({
-      host: "127.0.0.1",
-      logLevel: "silent",
-      nodeEnv: "test",
-      port: 0,
+      config: {
+        databaseUrl: "postgresql://garimzap:garimzap@localhost:5432/garimzap",
+        host: "127.0.0.1",
+        logLevel: "silent",
+        nodeEnv: "test",
+        port: 0,
+      },
     });
 
     const response = await app.inject({

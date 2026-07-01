@@ -11,6 +11,12 @@
     "rootDir": ".",
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "eslint.config.mjs", "vitest.config.ts"],
+  "include": [
+    "src/**/*.ts",
+    "scripts/**/*.ts",
+    "test/**/*.ts",
+    "eslint.config.mjs",
+    "vitest.config.ts"
+  ],
   "exclude": ["dist", "node_modules"]
 }

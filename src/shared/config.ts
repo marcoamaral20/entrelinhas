@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const configSchema = z.object({
+  DATABASE_URL: z.string().url().default("postgresql://garimzap:garimzap@localhost:5432/garimzap"),
   HOST: z.string().min(1).default("0.0.0.0"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -8,6 +9,7 @@ const configSchema = z.object({
 });
 
 export type AppConfig = {
+  databaseUrl: string;
   host: string;
   logLevel: z.infer<typeof configSchema>["LOG_LEVEL"];
   nodeEnv: z.infer<typeof configSchema>["NODE_ENV"];
@@ -26,6 +28,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
 
   return {
+    databaseUrl: result.data.DATABASE_URL,
     host: result.data.HOST,
     logLevel: result.data.LOG_LEVEL,
     nodeEnv: result.data.NODE_ENV,

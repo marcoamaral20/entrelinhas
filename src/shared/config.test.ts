@@ -7,6 +7,7 @@ describe("loadConfig", () => {
     const config = loadConfig({});
 
     expect(config).toEqual({
+      databaseUrl: "postgresql://garimzap:garimzap@localhost:5432/garimzap",
       host: "0.0.0.0",
       logLevel: "info",
       nodeEnv: "development",
@@ -17,12 +18,14 @@ describe("loadConfig", () => {
   it("parses explicit environment values", () => {
     const config = loadConfig({
       HOST: "127.0.0.1",
+      DATABASE_URL: "postgresql://example:example@localhost:5432/example",
       LOG_LEVEL: "debug",
       NODE_ENV: "test",
       PORT: "4000",
     });
 
     expect(config).toEqual({
+      databaseUrl: "postgresql://example:example@localhost:5432/example",
       host: "127.0.0.1",
       logLevel: "debug",
       nodeEnv: "test",

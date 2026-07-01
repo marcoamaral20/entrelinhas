@@ -1,9 +1,15 @@
 import { buildApp } from "./app";
+import { createPostgresMessageRepository } from "./messages/message.repository";
 import { loadConfig } from "./shared/config";
+import { createDatabase } from "./shared/database/database";
 
 async function start() {
   const config = loadConfig();
-  const app = buildApp(config);
+  const database = createDatabase(config.databaseUrl);
+  const app = buildApp({
+    config,
+    messageRepository: createPostgresMessageRepository(database.db),
+  });
 
   try {
     await app.listen({

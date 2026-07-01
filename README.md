@@ -2,11 +2,11 @@
 
 Garimzap is a backend platform for transforming high-volume group chat messages into structured business information.
 
-The MVP focuses on real estate listings and follows a provider-agnostic, asynchronous processing architecture. The current implementation is **Milestone 4: Real Estate Parser and Property Listing Creation**.
+The MVP focuses on real estate listings and follows a provider-agnostic, asynchronous processing architecture. The current implementation is **Milestone 5: Query APIs and Product Metrics**.
 
 ## Current Milestone
 
-Milestone 4 provides:
+Milestone 5 provides:
 
 - Runnable TypeScript backend service.
 - `GET /health` endpoint.
@@ -25,9 +25,12 @@ Milestone 4 provides:
 - Parser Result statuses: `listing_created`, `unstructured`, and `rejected`.
 - Property Listing creation when strict listing requirements are met.
 - Traceability from Property Listing to Parser Result and Raw Message.
+- Property Listing query APIs through `GET /property-listings` and `GET /property-listings/:id`.
+- Listing filters for city, neighborhood, property type, and price range.
+- Product statistics through `GET /statistics`.
 - Quality gates for tests, typechecking, linting, and formatting.
 
-Milestone 4 does not include property listing query APIs, statistics, authentication, provider integrations, AI extraction, multi-domain parsing, or a frontend dashboard.
+Milestone 5 does not include pagination, sorting, full-text search, semantic search, saved filters, alerts, authentication, provider integrations, AI extraction, multi-domain parsing, multi-tenancy, or a frontend dashboard.
 
 ## Requirements
 
@@ -160,8 +163,6 @@ incomplete real estate message -> unstructured
 non-real-estate message -> rejected
 ```
 
-Property Listing query APIs are intentionally deferred to Milestone 5.
-
 List raw messages:
 
 ```bash
@@ -172,6 +173,81 @@ Retrieve one raw message:
 
 ```bash
 curl http://localhost:3000/messages/generated-message-id
+```
+
+## Property Listing API
+
+List extracted property listings:
+
+```bash
+curl http://localhost:3000/property-listings
+```
+
+Filter extracted property listings:
+
+```bash
+curl "http://localhost:3000/property-listings?city=Londrina&propertyType=house&minPrice=300000&maxPrice=500000"
+```
+
+Successful responses use the consistent read response shape:
+
+```json
+{
+  "data": [
+    {
+      "id": "generated-listing-id",
+      "rawMessageId": "generated-message-id",
+      "parserResultId": "generated-parser-result-id",
+      "intent": "sale",
+      "propertyType": "house",
+      "priceAmount": 320000,
+      "locationText": "Jardim Europa, Londrina - PR",
+      "city": "Londrina",
+      "neighborhood": "Jardim Europa",
+      "state": "PR",
+      "bedrooms": 3,
+      "contactPhone": "(43) 99999-9999",
+      "createdAt": "generated-created-timestamp"
+    }
+  ]
+}
+```
+
+Retrieve one property listing:
+
+```bash
+curl http://localhost:3000/property-listings/generated-listing-id
+```
+
+If a listing does not exist, the API returns `404 Not Found`.
+
+## Statistics API
+
+Retrieve product statistics:
+
+```bash
+curl http://localhost:3000/statistics
+```
+
+Example response:
+
+```json
+{
+  "data": {
+    "totalReceivedMessages": 10,
+    "totalPropertyListings": 4,
+    "extractionSuccessRate": 40,
+    "totalUnstructuredMessages": 3,
+    "totalRejectedMessages": 2,
+    "totalMessagesCurrentlyProcessing": 1
+  }
+}
+```
+
+`extractionSuccessRate` is calculated as:
+
+```text
+listing_created parser results / processed raw messages * 100
 ```
 
 ## Quality Gates

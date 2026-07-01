@@ -10,7 +10,7 @@ type ProcessRawMessageDependencies = {
   >;
   parserResultRepository: ParserResultRepository;
   processor?: () => Promise<void>;
-  propertyListingRepository: PropertyListingRepository;
+  propertyListingRepository: Pick<PropertyListingRepository, "createFromParserResult">;
   rawMessageId: string;
 };
 

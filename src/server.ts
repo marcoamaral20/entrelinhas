@@ -1,8 +1,10 @@
 import { buildApp } from "./app";
 import { createPostgresMessageRepository } from "./messages/message.repository";
 import { createBullMqProcessingQueue } from "./processing/processing.queue";
+import { createPostgresPropertyListingRepository } from "./property-listings/property-listing.repository";
 import { loadConfig } from "./shared/config";
 import { createDatabase } from "./shared/database/database";
+import { createPostgresStatisticsRepository } from "./statistics/statistics.repository";
 
 async function start() {
   const config = loadConfig();
@@ -12,6 +14,8 @@ async function start() {
     config,
     messageRepository: createPostgresMessageRepository(database.db),
     processingQueue,
+    propertyListingRepository: createPostgresPropertyListingRepository(database.db),
+    statisticsRepository: createPostgresStatisticsRepository(database.db),
   });
 
   try {

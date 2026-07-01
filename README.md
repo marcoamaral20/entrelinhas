@@ -1,14 +1,16 @@
 # Garimzap
 
-Garimzap turns high-volume WhatsApp-style group conversations into structured business data.
+Garimzap transforma conversas de grupos no estilo WhatsApp em dados de negócio estruturados.
 
-The MVP focuses on one concrete problem: real estate opportunities disappearing inside group chat history. Brokers, agencies, investors, and operators often spend time scrolling through old messages to find listings, prices, locations, and contacts that were posted informally. Garimzap captures those messages, processes them asynchronously, applies deterministic parsing rules, and exposes searchable Property Listings through REST APIs.
+O MVP foca em um problema concreto: oportunidades imobiliárias que desaparecem no histórico de grupos. Corretores, imobiliárias, investidores e operadores gastam tempo procurando mensagens antigas para encontrar imóveis, preços, bairros, cidades e contatos publicados de forma informal.
 
-This project is intentionally backend-first. It demonstrates a realistic modular monolith using TypeScript, Fastify, PostgreSQL, Redis, BullMQ, deterministic parsers, and clean module boundaries.
+Garimzap captura essas mensagens, processa tudo de forma assíncrona, aplica regras determinísticas de parsing e expõe os imóveis extraídos por meio de APIs REST.
 
-## Why This Exists
+Este projeto é intencionalmente backend-first. Ele demonstra uma arquitetura realista de monólito modular com TypeScript, Fastify, PostgreSQL, Redis, BullMQ, parsers determinísticos e fronteiras claras entre módulos.
 
-Group conversations often contain valuable business events:
+## Por Que Este Projeto Existe
+
+Grupos de conversa costumam conter eventos de negócio valiosos:
 
 ```text
 VENDO CASA
@@ -22,7 +24,7 @@ R$ 320.000
 Contato: (43) 99999-9999
 ```
 
-Garimzap converts that into structured data:
+Garimzap converte isso em dado estruturado:
 
 ```json
 {
@@ -38,144 +40,144 @@ Garimzap converts that into structured data:
 }
 ```
 
-The interesting engineering challenge is not "call an LLM and hope." The challenge is building a reliable ingestion and processing pipeline where AI can be added later without becoming a hidden dependency.
+O desafio interessante aqui não é "chamar uma LLM e torcer". O desafio é construir um pipeline confiável de ingestão e processamento, onde IA pode ser adicionada depois como melhoria, não como dependência invisível.
 
-## Product Philosophy
+## Filosofia Do Produto
 
-- Deterministic first: regex, keywords, and business rules power the MVP.
-- AI later: AI should enhance summarization, semantic search, and ambiguous extraction in future versions.
-- Quality over recall: incomplete real estate messages are preserved as parser results but do not become Property Listings.
-- Provider agnostic: the MVP accepts a normalized webhook payload instead of depending on WhatsApp, Telegram, Discord, or Slack.
-- Backend first: REST APIs are the product surface; a dashboard can consume them later.
+- Determinístico primeiro: regex, palavras-chave e regras de negócio sustentam o MVP.
+- IA depois: IA deve melhorar sumarização, busca semântica e extrações ambíguas em versões futuras.
+- Qualidade acima de volume: mensagens imobiliárias incompletas são preservadas como resultados do parser, mas não viram imóveis estruturados.
+- Independente de provedor: o MVP recebe um payload normalizado em vez de depender diretamente de WhatsApp, Telegram, Discord ou Slack.
+- Backend primeiro: APIs REST são a superfície principal do produto; um dashboard pode consumi-las no futuro.
 
-## Demo GIF Placeholder
+## Espaço Para GIF De Demonstração
 
-A terminal demo GIF will fit here in a future article or presentation.
+Uma demonstração em GIF no terminal pode entrar aqui em um artigo ou apresentação futura.
 
 ```text
-Incoming Message
+Mensagem recebida
   |
 Webhook
   |
-Queue
+Fila
   |
 Worker
   |
 Parser
   |
-Property Listing
+Imóvel estruturado
   |
-REST API
+API REST
 ```
 
-## What Works Today
+## O Que Funciona Hoje
 
-- Provider-agnostic message ingestion.
-- Raw message persistence.
-- Duplicate-aware ingestion by `externalMessageId` and `groupId`.
-- Redis/BullMQ asynchronous processing.
-- Separate API and worker processes.
-- Deterministic real estate parser.
-- Parser Results for every processed message:
+- Ingestão de mensagens independente de provedor.
+- Persistência de mensagens brutas.
+- Ingestão idempotente por `externalMessageId` e `groupId`.
+- Processamento assíncrono com Redis e BullMQ.
+- Processos separados para API e worker.
+- Parser imobiliário determinístico.
+- Parser Results para toda mensagem processada:
   - `listing_created`
   - `unstructured`
   - `rejected`
-- Strict Property Listing creation.
-- REST APIs for:
-  - raw messages
-  - property listings
-  - statistics
-- Local PostgreSQL and Redis through Docker Compose.
-- Automated tests, typechecking, linting, formatting, build, and audit scripts.
+- Criação rigorosa de Property Listings.
+- APIs REST para:
+  - mensagens brutas
+  - imóveis estruturados
+  - estatísticas
+- PostgreSQL e Redis locais via Docker Compose.
+- Testes automatizados, typecheck, lint, formatação, build e audit.
 
-## Architecture
+## Arquitetura
 
 ```mermaid
 flowchart TD
-  A["Incoming normalized message"] --> B["Webhook API"]
-  B --> C["Raw Message persistence"]
-  C --> D["Processing Queue"]
+  A["Mensagem normalizada recebida"] --> B["Webhook API"]
+  B --> C["Persistência da Raw Message"]
+  C --> D["Fila de processamento"]
   D --> E["Worker"]
-  E --> F["Deterministic Parser"]
+  E --> F["Parser determinístico"]
   F --> G["Parser Result"]
-  G --> H{"Valid listing?"}
-  H -->|Yes| I["Property Listing"]
-  H -->|Incomplete real estate| J["Unstructured Parser Result"]
-  H -->|Unsupported domain| K["Rejected Parser Result"]
-  I --> L["REST APIs"]
+  G --> H{"Imóvel válido?"}
+  H -->|Sim| I["Property Listing"]
+  H -->|Imobiliário incompleto| J["Parser Result unstructured"]
+  H -->|Domínio não suportado| K["Parser Result rejected"]
+  I --> L["APIs REST"]
   J --> L
   K --> L
 ```
 
-Garimzap is a modular monolith. The important boundary is not process separation; it is ownership.
+Garimzap é um monólito modular. A fronteira mais importante não é a separação em processos; é a separação de responsabilidades.
 
-| Module              | Responsibility                                                                                 |
+| Módulo              | Responsabilidade                                                                               |
 | ------------------- | ---------------------------------------------------------------------------------------------- |
-| `messages`          | Normalized incoming messages, raw persistence, message query API, technical processing status. |
-| `processing`        | Queue integration, worker orchestration, retry boundary, processing lifecycle.                 |
-| `parser`            | Deterministic real estate detection, extraction, decision, and Parser Result persistence.      |
-| `property-listings` | Structured real estate listing persistence and query APIs.                                     |
-| `statistics`        | Read-only product and processing metrics from persisted outcomes.                              |
-| `shared`            | Configuration and database infrastructure.                                                     |
-| `drizzle`           | SQL migrations.                                                                                |
+| `messages`          | Mensagens normalizadas, persistência bruta, API de consulta e status técnico de processamento. |
+| `processing`        | Integração com fila, orquestração do worker, retries e ciclo técnico de processamento.         |
+| `parser`            | Detecção, extração, decisão e persistência de Parser Results para o domínio imobiliário.       |
+| `property-listings` | Persistência e APIs de consulta para imóveis estruturados.                                     |
+| `statistics`        | Métricas de produto e processamento calculadas a partir dos dados persistidos.                 |
+| `shared`            | Configuração e infraestrutura de banco de dados.                                               |
+| `drizzle`           | Migrações SQL.                                                                                 |
 
-## Requirements
+## Requisitos
 
-- Node.js 22 or newer.
+- Node.js 22 ou superior.
 - npm.
-- Docker, for local PostgreSQL and Redis.
+- Docker, para PostgreSQL e Redis locais.
 
-## Local Setup
+## Como Rodar Localmente
 
-Install dependencies:
+Instale as dependências:
 
 ```bash
 npm install
 ```
 
-Create a local environment file:
+Crie o arquivo de ambiente local:
 
 ```bash
 cp .env.example .env
 ```
 
-Start PostgreSQL and Redis:
+Suba PostgreSQL e Redis:
 
 ```bash
 docker compose up -d
 ```
 
-If your Docker installation uses the legacy Compose command:
+Se sua instalação do Docker usa o comando Compose legado:
 
 ```bash
 docker-compose up -d
 ```
 
-Run database migrations:
+Execute as migrações:
 
 ```bash
 npm run db:migrate
 ```
 
-Start the API in one terminal:
+Inicie a API em um terminal:
 
 ```bash
 npm run dev
 ```
 
-Start the worker in another terminal:
+Inicie o worker em outro terminal:
 
 ```bash
 npm run dev:worker
 ```
 
-Check service health:
+Verifique a saúde do serviço:
 
 ```bash
 curl http://localhost:3000/health
 ```
 
-Expected response:
+Resposta esperada:
 
 ```json
 {
@@ -184,20 +186,20 @@ Expected response:
 }
 ```
 
-## Five-Minute Demo
+## Demonstração Em Cinco Minutos
 
-The canonical demo flow lives in [docs/demo.md](./docs/demo.md).
+O fluxo canônico de demonstração está em [docs/demo.md](./docs/demo.md).
 
-Short version:
+Versão curta:
 
-1. Send a normalized incoming message to `POST /webhooks/messages`.
-2. Let the worker process the queued message.
-3. Query `GET /property-listings`.
-4. Query `GET /statistics`.
+1. Envie uma mensagem normalizada para `POST /webhooks/messages`.
+2. Deixe o worker processar a mensagem na fila.
+3. Consulte `GET /property-listings`.
+4. Consulte `GET /statistics`.
 
-## API Examples
+## Exemplos De API
 
-### Submit A Message
+### Enviar Uma Mensagem
 
 ```bash
 curl -X POST http://localhost:3000/webhooks/messages \
@@ -213,27 +215,27 @@ curl -X POST http://localhost:3000/webhooks/messages \
   }'
 ```
 
-Successful ingestion returns `201 Created`. Sending the same `externalMessageId` and `groupId` again returns the existing raw message with `created: false`.
+Uma ingestão bem-sucedida retorna `201 Created`. Enviar novamente o mesmo `externalMessageId` com o mesmo `groupId` retorna a mensagem bruta existente com `created: false`.
 
-### List Raw Messages
+### Listar Mensagens Brutas
 
 ```bash
 curl http://localhost:3000/messages
 ```
 
-### List Property Listings
+### Listar Imóveis Estruturados
 
 ```bash
 curl http://localhost:3000/property-listings
 ```
 
-### Filter Property Listings
+### Filtrar Imóveis
 
 ```bash
 curl "http://localhost:3000/property-listings?city=Londrina&propertyType=house&minPrice=300000&maxPrice=500000"
 ```
 
-Example response:
+Exemplo de resposta:
 
 ```json
 {
@@ -257,21 +259,21 @@ Example response:
 }
 ```
 
-### Retrieve One Property Listing
+### Buscar Um Imóvel Por ID
 
 ```bash
 curl http://localhost:3000/property-listings/generated-listing-id
 ```
 
-If the listing does not exist, the API returns `404 Not Found`.
+Se o imóvel não existir, a API retorna `404 Not Found`.
 
-### Get Statistics
+### Consultar Estatísticas
 
 ```bash
 curl http://localhost:3000/statistics
 ```
 
-Example response:
+Exemplo de resposta:
 
 ```json
 {
@@ -286,15 +288,15 @@ Example response:
 }
 ```
 
-`extractionSuccessRate` is calculated as:
+`extractionSuccessRate` é calculado assim:
 
 ```text
-listing_created parser results / processed raw messages * 100
+parser results listing_created / raw messages processed * 100
 ```
 
-## Development Workflow
+## Fluxo De Desenvolvimento
 
-Run the release-quality checks locally:
+Execute as validações de release localmente:
 
 ```bash
 npm run db:migrate
@@ -306,50 +308,50 @@ npm run build
 npm audit --audit-level=high
 ```
 
-Useful scripts:
+Scripts úteis:
 
-| Script                 | Purpose                                |
-| ---------------------- | -------------------------------------- |
-| `npm run dev`          | Start the API with watch mode.         |
-| `npm run dev:worker`   | Start the worker with watch mode.      |
-| `npm run db:migrate`   | Apply SQL migrations from `drizzle/`.  |
-| `npm test`             | Run Vitest.                            |
-| `npm run typecheck`    | Run TypeScript without emitting files. |
-| `npm run lint`         | Run ESLint.                            |
-| `npm run format:check` | Check Prettier formatting.             |
-| `npm run build`        | Compile TypeScript.                    |
+| Script                 | Finalidade                                |
+| ---------------------- | ----------------------------------------- |
+| `npm run dev`          | Inicia a API em modo watch.               |
+| `npm run dev:worker`   | Inicia o worker em modo watch.            |
+| `npm run db:migrate`   | Aplica as migrações SQL de `drizzle/`.    |
+| `npm test`             | Executa o Vitest.                         |
+| `npm run typecheck`    | Executa o TypeScript sem emitir arquivos. |
+| `npm run lint`         | Executa o ESLint.                         |
+| `npm run format:check` | Verifica formatação com Prettier.         |
+| `npm run build`        | Compila o TypeScript.                     |
 
-## Current Limitations
+## Limitações Atuais
 
-This is an MVP release candidate, not a complete SaaS product.
+Este é um candidato a release MVP, não um SaaS completo.
 
-- Real estate is the only supported domain.
-- Parser vocabulary is intentionally small and Portuguese-focused.
-- Parsing is deterministic; no AI is used.
-- No authentication or authorization.
-- No provider adapters for WhatsApp, Telegram, Discord, or Slack.
-- No frontend dashboard.
-- No pagination, sorting, full-text search, semantic search, saved filters, or alerts.
-- No multi-tenancy or billing.
-- No production deployment automation.
-- No database indexes beyond the constraints required for MVP correctness.
+- Imobiliário é o único domínio suportado.
+- O vocabulário do parser é intencionalmente pequeno e focado em português.
+- O parsing é determinístico; nenhuma IA é usada.
+- Não há autenticação nem autorização.
+- Não há adapters para WhatsApp, Telegram, Discord ou Slack.
+- Não há dashboard frontend.
+- Não há paginação, ordenação, busca textual, busca semântica, filtros salvos ou alertas.
+- Não há multi-tenancy nem cobrança.
+- Não há automação de deploy em produção.
+- Não há índices de banco além das restrições necessárias para a corretude do MVP.
 
 ## Roadmap
 
-Future work should stay clearly separated from the implemented MVP:
+Trabalhos futuros devem permanecer claramente separados do MVP já implementado:
 
-- Provider Adapter Layer for WhatsApp Business API, Meta Cloud API, Evolution API, Z-API, Telegram, Discord, and Slack.
-- Dashboard for search, filters, charts, and operational review.
-- Additional business domains such as agribusiness, raffles, jobs, buying and selling, communities, and churches.
-- AI-assisted extraction for ambiguous messages.
-- Conversation summarization.
-- Semantic search.
-- Confidence scores and partial listing workflows.
-- Manual review queue.
-- Authentication, multi-tenancy, billing, and SaaS administration.
-- Deployment documentation and production operations hardening.
+- Camada de Provider Adapters para WhatsApp Business API, Meta Cloud API, Evolution API, Z-API, Telegram, Discord e Slack.
+- Dashboard para busca, filtros, gráficos e revisão operacional.
+- Novos domínios de negócio, como agronegócio, rifas, vagas, compra e venda, comunidades e igrejas.
+- Extração assistida por IA para mensagens ambíguas.
+- Sumarização de conversas.
+- Busca semântica.
+- Scores de confiança e fluxos de listagens parciais.
+- Fila de revisão manual.
+- Autenticação, multi-tenancy, cobrança e administração SaaS.
+- Documentação de deploy e endurecimento operacional para produção.
 
-## Project Documents
+## Documentos Do Projeto
 
 - [Product Requirements](./PRODUCT_REQUIREMENTS.md)
 - [Architecture](./ARCHITECTURE.md)
@@ -357,6 +359,6 @@ Future work should stay clearly separated from the implemented MVP:
 - [Demo Guide](./docs/demo.md)
 - [Contributing](./CONTRIBUTING.md)
 
-## License
+## Licença
 
-MIT. See [LICENSE](./LICENSE).
+MIT. Veja [LICENSE](./LICENSE).
